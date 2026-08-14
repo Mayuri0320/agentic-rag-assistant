@@ -38,15 +38,15 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
     app.include_router(api_router)
 
-    @app.get("/")
-    async def root() -> dict[str, str]:
-        """Root endpoint."""
-        logger.info("Root endpoint called")
+    # @app.get("/")
+    # async def root() -> dict[str, str]:
+    #     """Root endpoint."""
+    #     logger.info("Root endpoint called")
 
-        return {
-            "application": settings.app_name,
-            "version": settings.app_version,
-            "environment": settings.environment,
-        }
+    #     return {
+    #         "application": settings.app_name,
+    #         "version": settings.app_version,
+    #         "environment": settings.environment,
+    #     }
 
     return app
