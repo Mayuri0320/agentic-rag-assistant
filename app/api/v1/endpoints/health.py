@@ -1,4 +1,4 @@
-"""Health check endpoints."""
+"""Health endpoint."""
 
 from fastapi import APIRouter, Depends
 
@@ -9,14 +9,17 @@ from app.services.health_service import HealthService
 router = APIRouter()
 
 
-@router.get(
-    "/health",
-    response_model=HealthResponse,
-    tags=["Health"],
-)
+@router.get("/health", response_model=HealthResponse)
 async def health(
     service: HealthService = Depends(get_health_service),
 ) -> HealthResponse:
-    """Health endpoint."""
+    """Return application and dependency health."""
+    dependencies = await service.check_dependencies()
 
-    return service.get_health()
+    all_healthy = all(dependencies.values())
+
+    return HealthResponse(
+        status="healthy" if all_healthy else "degraded",
+        database=dependencies["database"],
+        redis=dependencies["redis"],
+    )

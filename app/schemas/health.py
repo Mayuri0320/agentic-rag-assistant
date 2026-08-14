@@ -1,9 +1,11 @@
-"""Health response schema."""
+"""Health response schemas."""
 
 from pydantic import BaseModel
 
 
 class HealthResponse(BaseModel):
-    """Health response."""
+    """Health endpoint response."""
 
     status: str
+    database: bool
+    redis: bool

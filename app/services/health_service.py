@@ -1,16 +1,26 @@
-"""Health service."""
+"""Health check service."""
 
-from __future__ import annotations
-
-from app.schemas.health import HealthResponse
+from app.db.connection import check_database_connection
+from app.services.redis_service import check_redis_connection
 
 
 class HealthService:
-    """Service responsible for health checks."""
+    """Service for checking application dependencies."""
 
-    def get_health(self) -> HealthResponse:
-        """Return application health."""
+    async def check_database(self) -> bool:
+        """Check PostgreSQL availability."""
+        return await check_database_connection()
 
-        return HealthResponse(
-            status="healthy",
-        )
+    async def check_redis(self) -> bool:
+        """Check Redis availability."""
+        return await check_redis_connection()
+
+    async def check_dependencies(self) -> dict[str, bool]:
+        """Check all external dependencies."""
+        database_ok = await self.check_database()
+        redis_ok = await self.check_redis()
+
+        return {
+            "database": database_ok,
+            "redis": redis_ok,
+        }

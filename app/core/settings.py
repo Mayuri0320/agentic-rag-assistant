@@ -18,6 +18,23 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = 8000
 
+    secret_key: str = "CHANGE_ME"
+    access_token_expire_minutes: int = 30
+    refresh_token_expire_days: int = 7
+
+    openai_api_key: str = ""
+    gemini_api_key: str = ""
+
+    database_url: str = (
+        "postgresql+asyncpg://postgres:postgres@localhost:5432/agentic_rag"
+    )
+
+    redis_url: str = "redis://localhost:6379/0"
+
+    chroma_persist_directory: str = "./data/chroma"
+
+    log_level: str = "INFO"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
