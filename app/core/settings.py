@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     chroma_persist_directory: str = "./data/chroma"
+    document_storage_directory: str = "./data/documents"
 
     log_level: str = "INFO"
 
