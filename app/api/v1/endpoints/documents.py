@@ -75,10 +75,7 @@ async def list_documents(
     documents = await service.list_documents(current_user.id)
 
     return DocumentListResponse(
-        documents=[
-            DocumentResponse.model_validate(document)
-            for document in documents
-        ],
+        documents=[DocumentResponse.model_validate(document) for document in documents],
     )
 
 

@@ -39,9 +39,7 @@ class DocumentService:
         extension = Path(filename).suffix.lower()
 
         if extension not in self.ALLOWED_FILE_TYPES:
-            raise ValueError(
-                f"Unsupported file type: {extension or 'unknown'}"
-            )
+            raise ValueError(f"Unsupported file type: {extension or 'unknown'}")
 
         if file_size <= 0:
             raise ValueError("File cannot be empty")
