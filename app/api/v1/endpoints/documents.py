@@ -7,9 +7,15 @@ from app.core.settings import get_settings
 from app.db.models.user import User
 from app.db.session import get_db_session
 from app.dependencies.auth import get_current_user
+from app.ingestion.chunking.text_chunker import TextChunker
+from app.ingestion.cleaning.text_cleaner import TextCleaner
+from app.ingestion.embeddings.mock import MockEmbeddingProvider
+from app.ingestion.loaders.factory import DocumentLoaderFactory
+from app.ingestion.pipeline import IngestionPipeline
 from app.schemas.document import DocumentListResponse, DocumentResponse
 from app.services.document_service import DocumentService
 from app.storage.document_storage import DocumentStorage
+from app.vectorstore.chroma import ChromaVectorStore
 
 router = APIRouter(
     prefix="/documents",
@@ -17,8 +23,38 @@ router = APIRouter(
 )
 
 
+def get_vector_store() -> ChromaVectorStore:
+    """Create the application vector store."""
+    settings = get_settings()
+
+    return ChromaVectorStore(
+        persist_directory=settings.chroma_persist_directory,
+        collection_name="document_chunks",
+    )
+
+
+def get_ingestion_pipeline(
+    vector_store: ChromaVectorStore = Depends(get_vector_store),
+) -> IngestionPipeline:
+    """Create the document ingestion pipeline."""
+    return IngestionPipeline(
+        loader_factory=DocumentLoaderFactory.default(),
+        text_cleaner=TextCleaner(),
+        text_chunker=TextChunker(
+            chunk_size=1000,
+            chunk_overlap=200,
+        ),
+        embedding_provider=MockEmbeddingProvider(
+            dimension=32,
+        ),
+        vector_store=vector_store,
+    )
+
+
 def get_document_service(
     session: AsyncSession = Depends(get_db_session),
+    vector_store: ChromaVectorStore = Depends(get_vector_store),
+    ingestion_pipeline: IngestionPipeline = Depends(get_ingestion_pipeline),
 ) -> DocumentService:
     """Create a document service."""
     settings = get_settings()
@@ -30,6 +66,8 @@ def get_document_service(
     return DocumentService(
         session=session,
         storage=storage,
+        ingestion_pipeline=ingestion_pipeline,
+        vector_store=vector_store,
     )
 
 
@@ -43,7 +81,7 @@ async def upload_document(
     current_user: User = Depends(get_current_user),
     service: DocumentService = Depends(get_document_service),
 ) -> DocumentResponse:
-    """Upload a document."""
+    """Upload, ingest, and index a document."""
     content = await file.read()
 
     try:

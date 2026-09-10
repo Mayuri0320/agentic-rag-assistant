@@ -5,8 +5,10 @@ from pathlib import Path
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.document import Document
+from app.ingestion.pipeline import IngestionPipeline
 from app.repositories.document_repository import DocumentRepository
 from app.storage.document_storage import DocumentStorage
+from app.vectorstore.chroma import ChromaVectorStore
 
 
 class DocumentService:
@@ -25,10 +27,14 @@ class DocumentService:
         self,
         session: AsyncSession,
         storage: DocumentStorage,
+        ingestion_pipeline: IngestionPipeline | None = None,
+        vector_store: ChromaVectorStore | None = None,
     ) -> None:
         """Initialize the document service."""
         self.repository = DocumentRepository(session)
         self.storage = storage
+        self.ingestion_pipeline = ingestion_pipeline
+        self.vector_store = vector_store
 
     def validate_file(
         self,
@@ -55,7 +61,7 @@ class DocumentService:
         file_size: int,
         content: bytes,
     ) -> Document:
-        """Validate, store, and create a document record."""
+        """Validate, store, create, and ingest a document."""
         self.validate_file(
             filename=filename,
             file_size=file_size,
@@ -67,13 +73,32 @@ class DocumentService:
         )
 
         try:
-            return await self.repository.create(
+            document = await self.repository.create(
                 user_id=user_id,
                 filename=filename,
                 file_type=file_type,
                 file_size=file_size,
                 storage_path=storage_path,
             )
+
+            if self.ingestion_pipeline is not None:
+                try:
+                    self.ingestion_pipeline.ingest(
+                        file_path=storage_path,
+                        document_id=str(document.id),
+                        user_id=str(user_id),
+                        file_type=file_type,
+                    )
+                except Exception:
+                    if self.vector_store is not None:
+                        self.vector_store.delete_document(str(document.id))
+
+                    await self.repository.delete(document)
+                    self.storage.delete(storage_path)
+                    raise
+
+            return document
+
         except Exception:
             self.storage.delete(storage_path)
             raise
@@ -111,6 +136,9 @@ class DocumentService:
             document_id=document_id,
             user_id=user_id,
         )
+
+        if self.vector_store is not None:
+            self.vector_store.delete_document(str(document.id))
 
         await self.repository.delete(document)
 
