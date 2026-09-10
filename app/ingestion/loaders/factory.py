@@ -5,6 +5,9 @@ from pathlib import Path
 
 from app.ingestion.exceptions import UnsupportedDocumentTypeError
 from app.ingestion.loaders.base import DocumentLoader
+from app.ingestion.loaders.docx import DocxLoader
+from app.ingestion.loaders.pdf import PDFLoader
+from app.ingestion.loaders.text import TextLoader
 
 
 class DocumentLoaderFactory:
@@ -41,3 +44,14 @@ class DocumentLoaderFactory:
     def _normalize_file_type(file_type: str) -> str:
         """Normalize a MIME type before comparing it."""
         return file_type.split(";", maxsplit=1)[0].strip().lower()
+
+    @classmethod
+    def default(cls) -> "DocumentLoaderFactory":
+        """Create a factory containing all supported document loaders."""
+        return cls(
+            loaders=[
+                PDFLoader(),
+                TextLoader(),
+                DocxLoader(),
+            ]
+        )
