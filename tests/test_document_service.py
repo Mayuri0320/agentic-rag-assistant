@@ -87,7 +87,7 @@ async def test_create_document() -> None:
     )
     service.repository = repository
 
-    response = await service.create_document(
+    response_document, ingestion_result = await service.create_document(
         user_id=1,
         filename="report.pdf",
         file_type="application/pdf",
@@ -95,7 +95,8 @@ async def test_create_document() -> None:
         content=b"test document",
     )
 
-    assert response is document
+    assert response_document is document
+    assert ingestion_result is None
 
     storage.save.assert_called_once_with(
         filename="report.pdf",

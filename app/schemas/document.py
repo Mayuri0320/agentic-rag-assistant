@@ -20,6 +20,21 @@ class DocumentResponse(BaseModel):
     updated_at: datetime
 
 
+class IngestionResponse(BaseModel):
+    """Document ingestion result."""
+
+    status: str
+    chunk_count: int
+    character_count: int
+
+
+class DocumentUploadResponse(BaseModel):
+    """Response returned after uploading and indexing a document."""
+
+    document: DocumentResponse
+    ingestion: IngestionResponse
+
+
 class DocumentListResponse(BaseModel):
     """Document list response."""
 

@@ -12,7 +12,12 @@ from app.ingestion.cleaning.text_cleaner import TextCleaner
 from app.ingestion.embeddings.mock import MockEmbeddingProvider
 from app.ingestion.loaders.factory import DocumentLoaderFactory
 from app.ingestion.pipeline import IngestionPipeline
-from app.schemas.document import DocumentListResponse, DocumentResponse
+from app.schemas.document import (
+    DocumentListResponse,
+    DocumentResponse,
+    DocumentUploadResponse,
+    IngestionResponse,
+)
 from app.services.document_service import DocumentService
 from app.storage.document_storage import DocumentStorage
 from app.vectorstore.chroma import ChromaVectorStore
@@ -73,19 +78,19 @@ def get_document_service(
 
 @router.post(
     "/upload",
-    response_model=DocumentResponse,
+    response_model=DocumentUploadResponse,
     status_code=status.HTTP_201_CREATED,
 )
 async def upload_document(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     service: DocumentService = Depends(get_document_service),
-) -> DocumentResponse:
+) -> DocumentUploadResponse:
     """Upload, ingest, and index a document."""
     content = await file.read()
 
     try:
-        document = await service.create_document(
+        document, ingestion_result = await service.create_document(
             user_id=current_user.id,
             filename=file.filename or "unknown",
             file_type=file.content_type or "application/octet-stream",
@@ -98,7 +103,23 @@ async def upload_document(
             detail=str(exc),
         ) from exc
 
-    return DocumentResponse.model_validate(document)
+    if ingestion_result is None:
+        ingestion_response = IngestionResponse(
+            status="not_processed",
+            chunk_count=0,
+            character_count=0,
+        )
+    else:
+        ingestion_response = IngestionResponse(
+            status="completed",
+            chunk_count=ingestion_result.chunk_count,
+            character_count=ingestion_result.character_count,
+        )
+
+    return DocumentUploadResponse(
+        document=DocumentResponse.model_validate(document),
+        ingestion=ingestion_response,
+    )
 
 
 @router.get(

@@ -28,14 +28,23 @@ def test_upload_document() -> None:
     document.file_type = "application/pdf"
     document.file_size = 1024
     document.storage_path = "data/documents/report.pdf"
-    document.status = "uploaded"
+    document.status = "processed"
+
+    ingestion_result = MagicMock()
+    ingestion_result.chunk_count = 7
+    ingestion_result.character_count = 6124
 
     try:
         with patch(
             "app.api.v1.endpoints.documents.DocumentService",
         ) as service_class:
             service = service_class.return_value
-            service.create_document = AsyncMock(return_value=document)
+            service.create_document = AsyncMock(
+                return_value=(
+                    document,
+                    ingestion_result,
+                )
+            )
 
             response = client.post(
                 "/documents/upload",
@@ -49,9 +58,19 @@ def test_upload_document() -> None:
             )
 
         assert response.status_code == 201
-        assert response.json()["filename"] == "report.pdf"
+
+        data = response.json()
+
+        assert data["document"]["id"] == 1
+        assert data["document"]["filename"] == "report.pdf"
+        assert data["document"]["status"] == "processed"
+
+        assert data["ingestion"]["status"] == "completed"
+        assert data["ingestion"]["chunk_count"] == 7
+        assert data["ingestion"]["character_count"] == 6124
+
     finally:
-        app.dependency_overrides.clear()
+        app.dependency_overrides.pop(get_current_user, None)
 
 
 def test_upload_requires_authentication() -> None:
