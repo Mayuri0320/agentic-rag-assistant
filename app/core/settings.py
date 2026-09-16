@@ -24,6 +24,8 @@ class Settings(BaseSettings):
 
     openai_api_key: str = ""
     gemini_api_key: str = ""
+    llm_provider: str = "mock"
+    llm_model: str = "gpt-4.1-mini"
 
     database_url: str = (
         "postgresql+asyncpg://postgres:postgres@localhost:5432/agentic_rag"
