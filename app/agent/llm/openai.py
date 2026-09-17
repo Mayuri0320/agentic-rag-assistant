@@ -11,7 +11,7 @@ class OpenAILLMProvider(LLMProvider):
     def __init__(
         self,
         api_key: str,
-        model: str = "gpt-5.6-luna",
+        model: str = "gpt-4.1-mini",
     ) -> None:
         """Initialize the OpenAI provider."""
         if not api_key.strip():
