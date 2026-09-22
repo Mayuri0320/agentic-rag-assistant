@@ -22,3 +22,6 @@ docker-data/
 *.sqlite3
 .ipynb_checkpoints/
 *.swp
+
+# Application runtime data
+data/

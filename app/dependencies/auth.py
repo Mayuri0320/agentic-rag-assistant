@@ -1,7 +1,7 @@
 """Authentication dependencies."""
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.jwt import decode_token
@@ -9,15 +9,14 @@ from app.db.models.user import User
 from app.db.session import get_db_session
 from app.repositories.user_repository import UserRepository
 
-security = HTTPBearer()
+security = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    token: str = Depends(security),
     session: AsyncSession = Depends(get_db_session),
 ) -> User:
     """Return the authenticated user from the access token."""
-    token = credentials.credentials
 
     try:
         payload = decode_token(token)

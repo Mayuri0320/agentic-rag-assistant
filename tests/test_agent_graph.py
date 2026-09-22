@@ -59,8 +59,8 @@ def agent_graph(tmp_path: Path):
     llm_provider = MockLLMProvider()
 
     nodes = AgentNodes(
-    retriever=retriever,
-    llm_provider=llm_provider,
+        retriever=retriever,
+        llm_provider=llm_provider,
     )
 
     return build_agent_graph(nodes)
@@ -81,8 +81,7 @@ def test_agent_graph_retrieves_user_documents(agent_graph) -> None:
     assert result["retrieved_chunks"]
 
     assert all(
-        chunk["metadata"]["user_id"] == "user-a"
-        for chunk in result["retrieved_chunks"]
+        chunk["metadata"]["user_id"] == "user-a" for chunk in result["retrieved_chunks"]
     )
 
 

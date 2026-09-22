@@ -54,8 +54,11 @@ def decode_token(token: str) -> dict[str, Any]:
     """Decode and verify a JWT token."""
     settings = get_settings()
 
-    return jwt.decode(
-        token,
-        settings.secret_key,
-        algorithms=[ALGORITHM],
-    )
+    try:
+        return jwt.decode(
+            token,
+            settings.secret_key,
+            algorithms=[ALGORITHM],
+        )
+    except jwt.PyJWTError as exc:
+        raise ValueError("Invalid or expired token") from exc

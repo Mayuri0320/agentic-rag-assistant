@@ -66,7 +66,7 @@ class AgentNodes:
         return state
 
     def generate(self, state: AgentState) -> AgentState:
-        """Generate an answer using the retrieved document context."""
+        """Generate an answer using context and conversation history."""
         if not state.retrieved_chunks:
             state.answer = (
                 "I could not find relevant information in your documents "
@@ -75,9 +75,7 @@ class AgentNodes:
             return state
 
         context_parts = [
-            chunk["text"]
-            for chunk in state.retrieved_chunks
-            if chunk.get("text")
+            chunk["text"] for chunk in state.retrieved_chunks if chunk.get("text")
         ]
 
         if not context_parts:
@@ -92,10 +90,14 @@ class AgentNodes:
         system_prompt = (
             "You are a document question-answering assistant. "
             "Answer the user's question using only the provided document "
-            "context. Do not invent information."
+            "context. Use the conversation history to understand references "
+            "and follow-up questions. Do not invent information."
         )
 
+        history = self._format_conversation_history(state)
+
         user_prompt = (
+            f"Conversation history:\n{history}\n\n"
             f"Question:\n{state.query}\n\n"
             f"Document context:\n{context}"
         )
@@ -106,6 +108,19 @@ class AgentNodes:
         )
 
         return state
+
+    @staticmethod
+    def _format_conversation_history(
+        state: AgentState,
+    ) -> str:
+        """Format previous conversation messages for the LLM."""
+        if not state.conversation_history:
+            return "No previous conversation."
+
+        return "\n".join(
+            f"{message.role.capitalize()}: {message.content}"
+            for message in state.conversation_history
+        )
 
     def verify(self, state: AgentState) -> AgentState:
         """Verify that an answer has supporting retrieved context."""
@@ -120,9 +135,7 @@ class AgentNodes:
             return state
 
         context = " ".join(
-            chunk["text"]
-            for chunk in state.retrieved_chunks
-            if chunk.get("text")
+            chunk["text"] for chunk in state.retrieved_chunks if chunk.get("text")
         )
 
         if not context.strip():

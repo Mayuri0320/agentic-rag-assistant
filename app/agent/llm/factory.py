@@ -27,6 +27,4 @@ class LLMProviderFactory:
                 model=model,
             )
 
-        raise ValueError(
-            f"Unsupported LLM provider: {provider}"
-        )
+        raise ValueError(f"Unsupported LLM provider: {provider}")

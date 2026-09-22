@@ -88,3 +88,7 @@ class ConversationRepository:
         """Delete a conversation."""
         await self._session.delete(conversation)
         await self._session.flush()
+
+    async def commit(self) -> None:
+        """Commit the current transaction."""
+        await self._session.commit()

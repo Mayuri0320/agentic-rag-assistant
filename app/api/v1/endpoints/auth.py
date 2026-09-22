@@ -1,6 +1,7 @@
 """Authentication API endpoints."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db_session
@@ -56,6 +57,30 @@ async def login(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(exc),
+        ) from exc
+
+
+@router.post(
+    "/token",
+    response_model=TokenResponse,
+)
+async def token(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    session: AsyncSession = Depends(get_db_session),
+) -> TokenResponse:
+    """Authenticate through the OAuth2 password flow for Swagger UI."""
+    service = AuthenticationService(session)
+
+    try:
+        return await service.authenticate(
+            email=form_data.username,
+            password=form_data.password,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(exc),
+            headers={"WWW-Authenticate": "Bearer"},
         ) from exc
 
 

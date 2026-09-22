@@ -5,6 +5,14 @@ from typing import Any
 
 
 @dataclass(slots=True)
+class ConversationMessage:
+    """Represent a previous conversation message."""
+
+    role: str
+    content: str
+
+
+@dataclass(slots=True)
 class AgentState:
     """Shared state passed between nodes in the agentic RAG workflow."""
 
@@ -12,6 +20,10 @@ class AgentState:
     user_id: str
 
     document_id: str | None = None
+
+    conversation_history: list[ConversationMessage] = field(
+        default_factory=list,
+    )
 
     retrieved_chunks: list[dict[str, Any]] = field(default_factory=list)
 

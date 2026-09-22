@@ -119,9 +119,7 @@ def test_generate_propagates_openai_errors(
     """OpenAI API errors should be propagated to the caller."""
     mock_client = MagicMock()
 
-    mock_client.responses.create.side_effect = RuntimeError(
-        "OpenAI request failed"
-    )
+    mock_client.responses.create.side_effect = RuntimeError("OpenAI request failed")
 
     mock_openai.return_value = mock_client
 

@@ -2,8 +2,6 @@
 
 from datetime import UTC, datetime
 
-import jwt
-
 from app.core.jwt import (
     create_access_token,
     create_refresh_token,
@@ -38,7 +36,7 @@ def test_invalid_token() -> None:
 
     try:
         decode_token(invalid_token)
-    except jwt.InvalidTokenError:
-        pass
+    except ValueError as exc:
+        assert str(exc) == "Invalid or expired token"
     else:
         raise AssertionError("Invalid token was accepted")

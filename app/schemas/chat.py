@@ -8,6 +8,7 @@ class ChatRequest(BaseModel):
 
     query: str = Field(min_length=1, max_length=4000)
     document_id: int | None = None
+    conversation_id: int | None = Field(default=None, gt=0)
 
 
 class ChatResponse(BaseModel):
@@ -15,6 +16,7 @@ class ChatResponse(BaseModel):
 
     query: str
     answer: str
+    conversation_id: int
     document_id: int | None = None
     verification_passed: bool
     verification_reason: str | None = None
