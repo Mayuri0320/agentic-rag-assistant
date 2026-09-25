@@ -3,6 +3,7 @@
 from app.agent.llm.base import LLMProvider
 from app.agent.llm.mock import MockLLMProvider
 from app.agent.llm.openai import OpenAILLMProvider
+from app.agent.llm.gemini import GeminiLLMProvider
 
 
 class LLMProviderFactory:
@@ -23,6 +24,11 @@ class LLMProviderFactory:
 
         if normalized_provider == "openai":
             return OpenAILLMProvider(
+                api_key=api_key,
+                model=model,
+            )
+        if normalized_provider == "gemini":
+            return GeminiLLMProvider(
                 api_key=api_key,
                 model=model,
             )

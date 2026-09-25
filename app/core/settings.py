@@ -24,6 +24,8 @@ class Settings(BaseSettings):
 
     openai_api_key: str = ""
     gemini_api_key: str = ""
+    openai_model: str = "gpt-4.1-mini"
+    gemini_model: str = "gemini-2.5-flash"
     llm_provider: str = "mock"
     llm_model: str = "gpt-4.1-mini"
 

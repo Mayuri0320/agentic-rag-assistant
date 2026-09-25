@@ -42,7 +42,7 @@ def get_semantic_retriever() -> SemanticRetriever:
 
 @lru_cache
 def get_llm_provider() -> LLMProvider:
-    """Create the configured language model provider."""
+    """Create the configured default language model provider."""
     settings = get_settings()
 
     return LLMProviderFactory.create(
@@ -53,11 +53,37 @@ def get_llm_provider() -> LLMProvider:
 
 
 @lru_cache
+def get_openai_provider() -> LLMProvider:
+    """Create the OpenAI language model provider."""
+    settings = get_settings()
+
+    return LLMProviderFactory.create(
+        provider="openai",
+        api_key=settings.openai_api_key,
+        model=settings.openai_model,
+    )
+
+
+@lru_cache
+def get_gemini_provider() -> LLMProvider:
+    """Create the Gemini language model provider."""
+    settings = get_settings()
+
+    return LLMProviderFactory.create(
+        provider="gemini",
+        api_key=settings.gemini_api_key,
+        model=settings.gemini_model,
+    )
+
+
+@lru_cache
 def get_agent_graph() -> CompiledStateGraph:
     """Build and cache the application agent graph."""
     nodes = AgentNodes(
         retriever=get_semantic_retriever(),
         llm_provider=get_llm_provider(),
+        openai_provider=get_openai_provider(),
+        gemini_provider=get_gemini_provider(),
     )
 
     return build_agent_graph(nodes)

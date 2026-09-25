@@ -13,6 +13,8 @@ class AgentNodes:
         retriever: SemanticRetriever,
         llm_provider: LLMProvider,
         *,
+        openai_provider: LLMProvider | None = None,
+        gemini_provider: LLMProvider | None = None,
         max_retrieval_attempts: int = 2,
     ) -> None:
         """Initialize agent nodes."""
@@ -21,6 +23,8 @@ class AgentNodes:
 
         self._retriever = retriever
         self._llm_provider = llm_provider
+        self._openai_provider = openai_provider
+        self._gemini_provider = gemini_provider
         self._max_retrieval_attempts = max_retrieval_attempts
 
     def planner(self, state: AgentState) -> AgentState:
@@ -66,7 +70,7 @@ class AgentNodes:
         return state
 
     def generate(self, state: AgentState) -> AgentState:
-        """Generate an answer using context and conversation history."""
+        """Generate answers using the available language model providers."""
         if not state.retrieved_chunks:
             state.answer = (
                 "I could not find relevant information in your documents "
@@ -102,12 +106,45 @@ class AgentNodes:
             f"Document context:\n{context}"
         )
 
+        # Production mode: use both OpenAI and Gemini.
+        if self._openai_provider is not None and self._gemini_provider is not None:
+            state.openai_answer = self._openai_provider.generate(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+            )
+
+            state.gemini_answer = self._gemini_provider.generate(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+            )
+
+            state.answer = self._combine_provider_answers(
+                state.openai_answer,
+                state.gemini_answer,
+            )
+
+            return state
+
+        # Test/backward-compatible mode: use the existing provider.
         state.answer = self._llm_provider.generate(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
         )
 
         return state
+
+    @staticmethod
+    def _combine_provider_answers(
+        openai_answer: str,
+        gemini_answer: str,
+    ) -> str:
+        """Combine the two provider responses into a transparent answer."""
+        return (
+            "OpenAI answer:\n"
+            f"{openai_answer}\n\n"
+            "Gemini answer:\n"
+            f"{gemini_answer}"
+        )
 
     @staticmethod
     def _format_conversation_history(

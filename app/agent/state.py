@@ -29,6 +29,10 @@ class AgentState:
 
     answer: str | None = None
 
+    openai_answer: str | None = None
+
+    gemini_answer: str | None = None
+
     verification_passed: bool = False
 
     verification_reason: str | None = None
