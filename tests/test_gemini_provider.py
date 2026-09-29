@@ -103,6 +103,11 @@ def test_generate_returns_gemini_response(
 
     mock_client_class.assert_called_once_with(
         api_key="test-key",
+        http_options={
+            "retry_options": {
+                "attempts": 1,
+            },
+        },
     )
 
     mock_client.models.generate_content.assert_called_once_with(

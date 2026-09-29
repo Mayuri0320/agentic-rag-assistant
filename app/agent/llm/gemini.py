@@ -20,7 +20,14 @@ class GeminiLLMProvider(LLMProvider):
         if not model.strip():
             raise ValueError("Gemini model cannot be empty.")
 
-        self._client = genai.Client(api_key=api_key)
+        self._client = genai.Client(
+            api_key=api_key,
+            http_options={
+                "retry_options": {
+                    "attempts": 1,
+                }
+            },
+        )
         self._model = model
 
     def generate(

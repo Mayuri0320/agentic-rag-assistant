@@ -103,6 +103,7 @@ def test_generate_returns_openai_response(
 
     mock_openai.assert_called_once_with(
         api_key="test-key",
+        max_retries=0,
     )
 
     mock_client.responses.create.assert_called_once_with(

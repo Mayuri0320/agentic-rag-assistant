@@ -35,7 +35,14 @@ def build_agent_graph(nodes: AgentNodes) -> CompiledStateGraph:
 
 def _verification_route(state: AgentState) -> str:
     """Choose whether to finish or retry retrieval."""
+
     if state.verification_passed:
+        return "end"
+
+    # If an answer was generated from retrieved document evidence,
+    # do not repeat the expensive LLM calls just because one provider
+    # was unavailable.
+    if state.answer and state.retrieved_chunks:
         return "end"
 
     if state.retrieval_attempts >= 2:
