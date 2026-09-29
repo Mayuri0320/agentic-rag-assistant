@@ -69,13 +69,13 @@ def agent_graph(tmp_path: Path):
 def test_agent_graph_retrieves_user_documents(agent_graph) -> None:
     """The graph should retrieve documents belonging to the current user."""
     state = AgentState(
-        query="machine learning",
+        query="According to the document, what is machine learning?",
         user_id="user-a",
     )
 
     result = agent_graph.invoke(state)
 
-    assert result["query"] == "machine learning"
+    assert result["query"] == "According to the document, what is machine learning?"
     assert result["user_id"] == "user-a"
     assert result["retrieval_attempts"] == 1
     assert result["retrieved_chunks"]
@@ -117,3 +117,86 @@ def test_agent_graph_rejects_blank_user_id(agent_graph) -> None:
 
     with pytest.raises(ValueError, match="user_id cannot be empty"):
         agent_graph.invoke(state)
+
+
+def test_generate_uses_openai_and_gemini_then_synthesizes() -> None:
+    class StubProvider:
+        def __init__(self, responses: list[str]) -> None:
+            self.responses = responses
+            self.calls = 0
+
+        def generate(
+            self,
+            *,
+            system_prompt: str,
+            user_prompt: str,
+        ) -> str:
+            response = self.responses[self.calls]
+            self.calls += 1
+            return response
+
+    class StubRetriever:
+        def retrieve(
+            self,
+            *,
+            query: str,
+            user_id: str,
+            document_id: str | None,
+            top_k: int,
+        ) -> list:
+            return [
+                type(
+                    "RetrievedChunk",
+                    (),
+                    {
+                        "chunk_id": "chunk-1",
+                        "text": (
+                            "Machine learning is a method for learning "
+                            "patterns from data."
+                        ),
+                        "metadata": {},
+                    },
+                )()
+            ]
+
+    openai_provider = StubProvider(
+        [
+            "Machine learning learns patterns from data.",
+            "Machine learning allows systems to learn patterns from data.",
+        ]
+    )
+
+    gemini_provider = StubProvider(
+        [
+            "Machine learning identifies patterns in data.",
+        ]
+    )
+
+    nodes = AgentNodes(
+        retriever=StubRetriever(),
+        llm_provider=MockLLMProvider(),
+        openai_provider=openai_provider,
+        gemini_provider=gemini_provider,
+    )
+
+    state = AgentState(
+        query="What is machine learning?",
+        user_id="1",
+    )
+
+    state = nodes.retrieve(state)
+    state = nodes.generate(state)
+    state = nodes.verify(state)
+
+    assert state.openai_answer == ("Machine learning learns patterns from data.")
+
+    assert state.gemini_answer == ("Machine learning identifies patterns in data.")
+
+    assert state.answer == (
+        "Machine learning allows systems to learn patterns from data."
+    )
+
+    assert state.verification_passed is True
+
+    assert openai_provider.calls == 2
+    assert gemini_provider.calls == 1

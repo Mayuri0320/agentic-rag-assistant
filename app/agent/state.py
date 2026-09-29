@@ -21,6 +21,9 @@ class AgentState:
 
     document_id: str | None = None
 
+    route: str = "general"
+    tool_result: str | None = None
+
     conversation_history: list[ConversationMessage] = field(
         default_factory=list,
     )

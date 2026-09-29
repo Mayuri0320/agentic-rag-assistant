@@ -3,6 +3,7 @@
 import pytest
 
 from app.agent.llm.factory import LLMProviderFactory
+from app.agent.llm.gemini import GeminiLLMProvider
 from app.agent.llm.mock import MockLLMProvider
 from app.agent.llm.openai import OpenAILLMProvider
 
@@ -27,6 +28,17 @@ def test_factory_creates_openai_provider() -> None:
     )
 
     assert isinstance(provider, OpenAILLMProvider)
+
+
+def test_factory_creates_gemini_provider() -> None:
+    """The factory should create a Gemini provider."""
+    provider = LLMProviderFactory.create(
+        provider="gemini",
+        api_key="test-key",
+        model="gemini-2.5-flash",
+    )
+
+    assert isinstance(provider, GeminiLLMProvider)
 
 
 def test_factory_is_case_insensitive() -> None:

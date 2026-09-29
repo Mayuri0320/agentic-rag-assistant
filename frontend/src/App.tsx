@@ -4,11 +4,14 @@ import {
   getCurrentUser,
   uploadDocument,
   sendChatMessage,
+  getConversations,
+  getConversation,
 } from './api/client'
 import type {
   DocumentResponse,
   TokenResponse,
   User,
+  Conversation,
 } from './api/client'
 import './App.css'
 
@@ -32,6 +35,10 @@ function App() {
   const [activeConversation, setActiveConversation] =
     useState('New conversation')
 
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [isLoadingConversations, setIsLoadingConversations] =
+    useState(false)
+
   const [conversationId, setConversationId] =
     useState<number | undefined>(undefined)
 
@@ -40,11 +47,11 @@ function App() {
 
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-  const conversations = [
-    'New conversation',
-    'Project documentation',
-    'Research questions',
-  ]
+  /*
+   * =========================
+   * Authentication
+   * =========================
+   */
 
   useEffect(() => {
     const verifyAuthentication = async () => {
@@ -56,11 +63,30 @@ function App() {
       try {
         const currentUser = await getCurrentUser(accessToken)
         setUser(currentUser)
+
+        /*
+         * Load the user's saved conversations.
+         */
+        setIsLoadingConversations(true)
+
+        try {
+          const response = await getConversations(accessToken)
+          setConversations(response.conversations)
+        } catch (error) {
+          console.error(
+            'Failed to load conversations:',
+            error,
+          )
+          setConversations([])
+        } finally {
+          setIsLoadingConversations(false)
+        }
       } catch {
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
         setAccessToken(null)
         setUser(null)
+        setConversations([])
       } finally {
         setAuthLoading(false)
       }
@@ -86,7 +112,30 @@ function App() {
     setSelectedDocument(null)
     setConversationId(undefined)
     setActiveConversation('New conversation')
+    setConversations([])
   }
+
+  /*
+   * =========================
+   * New Conversation
+   * =========================
+   */
+
+  const startNewConversation = () => {
+    if (isSending) return
+
+    setMessages([])
+    setMessage('')
+    setSelectedDocument(null)
+    setConversationId(undefined)
+    setActiveConversation('New conversation')
+  }
+
+  /*
+   * =========================
+   * Document Upload
+   * =========================
+   */
 
   const handleFileSelected = async (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -121,6 +170,59 @@ function App() {
     }
   }
 
+  /*
+   * =========================
+   * Load Existing Conversation
+   * =========================
+   */
+
+  const loadConversation = async (id: number) => {
+    if (!accessToken || isSending) return
+
+    try {
+      const response = await getConversation(
+        accessToken,
+        id,
+      )
+
+      setConversationId(response.conversation.id)
+      setActiveConversation(response.conversation.title)
+
+      setMessages(
+        response.messages
+          .filter(
+            (item) =>
+              item.role === 'user' ||
+              item.role === 'assistant',
+          )
+          .map((item) => ({
+            role: item.role as 'user' | 'assistant',
+            content: item.content,
+          })),
+      )
+
+      setSelectedDocument(null)
+      setMessage('')
+    } catch (error) {
+      console.error(
+        'Failed to load conversation:',
+        error,
+      )
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Failed to load conversation',
+      )
+    }
+  }
+
+  /*
+   * =========================
+   * Send Message
+   * =========================
+   */
+
   const sendMessage = async () => {
     const trimmed = message.trim()
 
@@ -128,7 +230,14 @@ function App() {
 
     const documentId = selectedDocument?.id
 
-    // Show the user's message immediately
+    /*
+     * Remember whether this is a brand-new conversation.
+     */
+    const isNewConversation = conversationId === undefined
+
+    /*
+     * Show the user's message immediately.
+     */
     setMessages((current) => [
       ...current,
       {
@@ -137,10 +246,7 @@ function App() {
       },
     ])
 
-    // Clear the input
     setMessage('')
-
-    // Start loading state
     setIsSending(true)
 
     try {
@@ -151,12 +257,16 @@ function App() {
         documentId,
       )
 
-      // Save conversation ID returned by backend
+      /*
+       * Save the conversation ID returned by backend.
+       */
       if (response.conversation_id !== undefined) {
         setConversationId(response.conversation_id)
       }
 
-      // Add AI response to chat
+      /*
+       * Add AI response to chat.
+       */
       setMessages((current) => [
         ...current,
         {
@@ -164,6 +274,60 @@ function App() {
           content: response.answer,
         },
       ])
+
+      /*
+       * If this was a new conversation, refresh the sidebar
+       * so the newly created conversation appears immediately.
+       */
+      if (
+        isNewConversation &&
+        response.conversation_id !== undefined
+      ) {
+        try {
+          const updatedConversations =
+            await getConversations(accessToken)
+
+          setConversations(
+            updatedConversations.conversations,
+          )
+
+          const newConversation =
+            updatedConversations.conversations.find(
+              (conversation) =>
+                conversation.id ===
+                response.conversation_id,
+            )
+
+          if (newConversation) {
+            setActiveConversation(
+              newConversation.title,
+            )
+          }
+        } catch (error) {
+          console.error(
+            'Failed to refresh conversations:',
+            error,
+          )
+        }
+      } else {
+        /*
+         * Existing conversation may have an updated title or
+         * updated_at timestamp, so refresh the sidebar too.
+         */
+        try {
+          const updatedConversations =
+            await getConversations(accessToken)
+
+          setConversations(
+            updatedConversations.conversations,
+          )
+        } catch (error) {
+          console.error(
+            'Failed to refresh conversations:',
+            error,
+          )
+        }
+      }
     } catch (error) {
       console.error('Chat request failed:', error)
 
@@ -182,14 +346,29 @@ function App() {
     }
   }
 
+  /*
+   * =========================
+   * Keyboard Handling
+   * =========================
+   */
+
   const handleKeyDown = (
     event: React.KeyboardEvent<HTMLTextAreaElement>,
   ) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
+    if (
+      event.key === 'Enter' &&
+      !event.shiftKey
+    ) {
       event.preventDefault()
       void sendMessage()
     }
   }
+
+  /*
+   * =========================
+   * Loading Screen
+   * =========================
+   */
 
   if (authLoading) {
     return (
@@ -200,9 +379,25 @@ function App() {
     )
   }
 
+  /*
+   * =========================
+   * Authentication Screen
+   * =========================
+   */
+
   if (!accessToken || !user) {
-    return <Auth onAuthenticated={handleAuthenticated} />
+    return (
+      <Auth
+        onAuthenticated={handleAuthenticated}
+      />
+    )
   }
+
+  /*
+   * =========================
+   * Main Application
+   * =========================
+   */
 
   return (
     <div className="app-shell">
@@ -216,50 +411,62 @@ function App() {
           </div>
         </div>
 
+        {/* New conversation */}
         <button
           className="new-chat-button"
-          onClick={() => {
-            setMessages([])
-            setMessage('')
-            setSelectedDocument(null)
-            setConversationId(undefined)
-            setActiveConversation('New conversation')
-          }}
+          onClick={startNewConversation}
+          disabled={isSending}
         >
           <span>＋</span>
           New conversation
         </button>
 
+        {/* Conversation list */}
         <div className="sidebar-section">
-          <div className="section-label">CONVERSATIONS</div>
+          <div className="section-label">
+            CONVERSATIONS
+          </div>
 
           <div className="conversation-list">
-            {conversations.map((conversation) => (
-              <button
-                key={conversation}
-                className={`conversation-item ${
-                  activeConversation === conversation
-                    ? 'active'
-                    : ''
-                }`}
-                onClick={() => {
-                  setActiveConversation(conversation)
-
-                  if (conversation === 'New conversation') {
-                    setMessages([])
-                    setMessage('')
-                    setSelectedDocument(null)
-                    setConversationId(undefined)
+            {isLoadingConversations ? (
+              <div className="conversation-empty">
+                Loading conversations...
+              </div>
+            ) : conversations.length === 0 ? (
+              <div className="conversation-empty">
+                No saved conversations yet.
+              </div>
+            ) : (
+              conversations.map((conversation) => (
+                <button
+                  key={conversation.id}
+                  className={`conversation-item ${
+                    conversationId === conversation.id
+                      ? 'active'
+                      : ''
+                  }`}
+                  onClick={() =>
+                    void loadConversation(
+                      conversation.id,
+                    )
                   }
-                }}
-              >
-                <span className="conversation-icon">◌</span>
-                <span>{conversation}</span>
-              </button>
-            ))}
+                  disabled={isSending}
+                  title={conversation.title}
+                >
+                  <span className="conversation-icon">
+                    ◌
+                  </span>
+
+                  <span>
+                    {conversation.title}
+                  </span>
+                </button>
+              ))
+            )}
           </div>
         </div>
 
+        {/* Sidebar bottom */}
         <div className="sidebar-bottom">
           <button className="sidebar-link">
             <span>▣</span>
@@ -273,7 +480,9 @@ function App() {
 
           <div className="user-card">
             <div className="avatar">
-              {user.email.charAt(0).toUpperCase()}
+              {user.email
+                .charAt(0)
+                .toUpperCase()}
             </div>
 
             <div className="user-info">
@@ -305,11 +514,17 @@ function App() {
           </div>
 
           <div className="topbar-actions">
-            <button className="icon-button" title="Documents">
+            <button
+              className="icon-button"
+              title="Documents"
+            >
               ▣
             </button>
 
-            <button className="icon-button" title="Settings">
+            <button
+              className="icon-button"
+              title="Settings"
+            >
               ⚙
             </button>
           </div>
@@ -318,14 +533,16 @@ function App() {
         <section className="chat-area">
           {messages.length === 0 ? (
             <div className="welcome">
-              <div className="welcome-icon">✦</div>
+              <div className="welcome-icon">
+                ✦
+              </div>
 
               <h3>How can I help you?</h3>
 
               <p>
-                Ask questions about your documents and let the
-                agentic workflow find, verify, and generate the
-                answer.
+                Ask questions about your documents
+                and let the agentic workflow find,
+                verify, and generate the answer.
               </p>
 
               <div className="suggestions">
@@ -336,10 +553,13 @@ function App() {
                     )
                   }
                 >
-                  <strong>Explore documents</strong>
+                  <strong>
+                    Explore documents
+                  </strong>
 
                   <span>
-                    What documents are available to me?
+                    What documents are available to
+                    me?
                   </span>
                 </button>
 
@@ -350,11 +570,13 @@ function App() {
                     )
                   }
                 >
-                  <strong>Summarise information</strong>
+                  <strong>
+                    Summarise information
+                  </strong>
 
                   <span>
-                    Summarise the key information in my
-                    documents.
+                    Summarise the key information in
+                    my documents.
                   </span>
                 </button>
 
@@ -365,10 +587,13 @@ function App() {
                     )
                   }
                 >
-                  <strong>Ask a question</strong>
+                  <strong>
+                    Ask a question
+                  </strong>
 
                   <span>
-                    Explain the main findings in my documents.
+                    Explain the main findings in my
+                    documents.
                   </span>
                 </button>
               </div>
@@ -382,7 +607,9 @@ function App() {
                 >
                   <div className="message-avatar">
                     {item.role === 'user'
-                      ? user.email.charAt(0).toUpperCase()
+                      ? user.email
+                          .charAt(0)
+                          .toUpperCase()
                       : '✦'}
                   </div>
 
@@ -400,7 +627,9 @@ function App() {
 
               {isSending && (
                 <div className="message-row assistant">
-                  <div className="message-avatar">✦</div>
+                  <div className="message-avatar">
+                    ✦
+                  </div>
 
                   <div className="message-content">
                     <span className="message-role">
@@ -428,14 +657,18 @@ function App() {
                     {selectedDocument.filename}
                   </strong>
 
-                  <span>Document attached</span>
+                  <span>
+                    Document attached
+                  </span>
                 </div>
               </div>
 
               <button
                 type="button"
                 className="selected-document-remove"
-                onClick={() => setSelectedDocument(null)}
+                onClick={() =>
+                  setSelectedDocument(null)
+                }
                 title="Remove document"
               >
                 ×
@@ -456,7 +689,9 @@ function App() {
               className="attach-button"
               title="Attach document"
               type="button"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() =>
+                fileInputRef.current?.click()
+              }
               disabled={isSending}
             >
               ＋
@@ -476,7 +711,9 @@ function App() {
             <button
               className="send-button"
               onClick={() => void sendMessage()}
-              disabled={!message.trim() || isSending}
+              disabled={
+                !message.trim() || isSending
+              }
               title="Send message"
               type="button"
             >
@@ -486,12 +723,13 @@ function App() {
 
           <div className="composer-footer">
             <span>
-              Agentic RAG can make mistakes. Verify important
-              information.
+              Agentic RAG can make mistakes. Verify
+              important information.
             </span>
 
             <span>
-              Enter to send · Shift + Enter for new line
+              Enter to send · Shift + Enter for new
+              line
             </span>
           </div>
         </div>

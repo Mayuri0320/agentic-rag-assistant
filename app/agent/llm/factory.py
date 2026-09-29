@@ -1,9 +1,9 @@
 """Factory for creating language model providers."""
 
 from app.agent.llm.base import LLMProvider
+from app.agent.llm.gemini import GeminiLLMProvider
 from app.agent.llm.mock import MockLLMProvider
 from app.agent.llm.openai import OpenAILLMProvider
-from app.agent.llm.gemini import GeminiLLMProvider
 
 
 class LLMProviderFactory:

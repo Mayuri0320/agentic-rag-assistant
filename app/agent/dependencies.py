@@ -7,6 +7,7 @@ from langgraph.graph.state import CompiledStateGraph
 from app.agent.graph import build_agent_graph
 from app.agent.llm.base import LLMProvider
 from app.agent.llm.factory import LLMProviderFactory
+from app.agent.llm.mock import MockLLMProvider
 from app.agent.nodes import AgentNodes
 from app.core.settings import get_settings
 from app.ingestion.embeddings.mock import MockEmbeddingProvider
@@ -44,6 +45,12 @@ def get_semantic_retriever() -> SemanticRetriever:
 def get_llm_provider() -> LLMProvider:
     """Create the configured default language model provider."""
     settings = get_settings()
+
+    if settings.llm_provider.strip().lower() == "dual":
+        # Dual mode uses the explicitly injected OpenAI and
+        # Gemini providers in AgentNodes. The default provider
+        # is only needed as a fallback.
+        return MockLLMProvider()
 
     return LLMProviderFactory.create(
         provider=settings.llm_provider,
