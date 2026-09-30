@@ -1,6 +1,7 @@
 """Nodes for the agentic RAG workflow."""
 
 import ast
+from concurrent.futures import ThreadPoolExecutor
 
 from app.agent.llm.base import LLMProvider
 from app.agent.state import AgentState
@@ -317,31 +318,33 @@ class AgentNodes:
         # --------------------------------------------------------------
 
         if self._openai_provider is not None and self._gemini_provider is not None:
-            # ----------------------------------------------------------
-            # Try OpenAI
-            # ----------------------------------------------------------
+            # --------------------------------------------------------------
+        # Try OpenAI and Gemini in parallel
+        # --------------------------------------------------------------
 
-            try:
-                state.openai_answer = self._openai_provider.generate(
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                openai_future = executor.submit(
+                    self._openai_provider.generate,
                     system_prompt=system_prompt,
                     user_prompt=user_prompt,
                 )
-            except Exception as exc:
-                openai_error = str(exc)
-                state.openai_answer = None
-
-            # ----------------------------------------------------------
-            # Try Gemini
-            # ----------------------------------------------------------
-
-            try:
-                state.gemini_answer = self._gemini_provider.generate(
+                gemini_future = executor.submit(
+                    self._gemini_provider.generate,
                     system_prompt=system_prompt,
                     user_prompt=user_prompt,
                 )
-            except Exception as exc:
-                gemini_error = str(exc)
-                state.gemini_answer = None
+
+                try:
+                    state.openai_answer = openai_future.result()
+                except Exception as exc:
+                    openai_error = str(exc)
+                    state.openai_answer = None
+
+                try:
+                    state.gemini_answer = gemini_future.result()
+                except Exception as exc:
+                    gemini_error = str(exc)
+                    state.gemini_answer = None
 
             # ----------------------------------------------------------
             # BOTH PROVIDERS SUCCEEDED
