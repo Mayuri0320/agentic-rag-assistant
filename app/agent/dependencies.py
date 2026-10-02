@@ -12,6 +12,7 @@ from app.agent.nodes import AgentNodes
 from app.core.settings import get_settings
 from app.ingestion.embeddings.mock import MockEmbeddingProvider
 from app.retrieval.retriever import SemanticRetriever
+from app.services.web_search_service import WebSearchService
 from app.vectorstore.chroma import ChromaVectorStore
 
 
@@ -41,22 +42,37 @@ def get_semantic_retriever() -> SemanticRetriever:
     )
 
 
+
 @lru_cache
 def get_llm_provider() -> LLMProvider:
     """Create the configured default language model provider."""
     settings = get_settings()
+    provider_mode = settings.llm_provider.strip().lower()
 
-    if settings.llm_provider.strip().lower() == "dual":
-        # Dual mode uses the explicitly injected OpenAI and
-        # Gemini providers in AgentNodes. The default provider
-        # is only needed as a fallback.
+    if provider_mode == "dual":
+        # Dual mode uses explicitly injected providers.
         return MockLLMProvider()
+
+    if provider_mode == "gemini":
+        return LLMProviderFactory.create(
+            provider="gemini",
+            api_key=settings.gemini_api_key,
+            model=settings.gemini_model,
+        )
+
+    if provider_mode == "openai":
+        return LLMProviderFactory.create(
+            provider="openai",
+            api_key=settings.openai_api_key,
+            model=settings.openai_model,
+        )
 
     return LLMProviderFactory.create(
         provider=settings.llm_provider,
         api_key=settings.openai_api_key,
         model=settings.llm_model,
     )
+
 
 
 @lru_cache
@@ -83,14 +99,23 @@ def get_gemini_provider() -> LLMProvider:
     )
 
 
+
 @lru_cache
 def get_agent_graph() -> CompiledStateGraph:
     """Build and cache the application agent graph."""
+    settings = get_settings()
+    provider_mode = settings.llm_provider.strip().lower()
+
     nodes = AgentNodes(
         retriever=get_semantic_retriever(),
         llm_provider=get_llm_provider(),
-        openai_provider=get_openai_provider(),
-        gemini_provider=get_gemini_provider(),
+        openai_provider=(
+            get_openai_provider() if provider_mode == "dual" else None
+        ),
+        gemini_provider=(
+            get_gemini_provider() if provider_mode == "dual" else None
+        ),
+        web_search_service=WebSearchService(),
     )
 
     return build_agent_graph(nodes)

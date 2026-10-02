@@ -1,6 +1,10 @@
+
 """Google Gemini language model provider."""
 
+import time
+
 from google import genai
+from google.genai.errors import ServerError
 
 from app.agent.llm.base import LLMProvider
 
@@ -25,7 +29,7 @@ class GeminiLLMProvider(LLMProvider):
             http_options={
                 "retry_options": {
                     "attempts": 1,
-                }
+                },
             },
         )
         self._model = model
@@ -36,22 +40,29 @@ class GeminiLLMProvider(LLMProvider):
         system_prompt: str,
         user_prompt: str,
     ) -> str:
-        """Generate a response using the Gemini API."""
+        """Generate a response using Gemini with retries for temporary failures."""
         if not system_prompt.strip():
             raise ValueError("system_prompt cannot be empty.")
 
         if not user_prompt.strip():
             raise ValueError("user_prompt cannot be empty.")
 
-        response = self._client.models.generate_content(
-            model=self._model,
-            contents=user_prompt,
-            config={
-                "system_instruction": system_prompt,
-            },
-        )
+        for attempt in range(3):
+            try:
+                response = self._client.models.generate_content(
+                    model=self._model,
+                    contents=user_prompt,
+                    config={"system_instruction": system_prompt},
+                )
 
-        if response.text is None:
-            raise ValueError("Gemini returned an empty response.")
+                if response.text is None:
+                    raise ValueError("Gemini returned an empty response.")
 
-        return response.text
+                return response.text
+
+            except ServerError:
+                if attempt == 2:
+                    raise
+                time.sleep(2 ** (attempt + 1))
+
+        raise RuntimeError("Gemini request failed after retries.")

@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from app.agent.llm.base import LLMProvider
 from app.agent.state import AgentState
 from app.retrieval.retriever import SemanticRetriever
+from app.services.web_search_service import WebSearchService
 
 
 class AgentNodes:
@@ -18,6 +19,7 @@ class AgentNodes:
         *,
         openai_provider: LLMProvider | None = None,
         gemini_provider: LLMProvider | None = None,
+        web_search_service: WebSearchService | None = None,
         max_retrieval_attempts: int = 2,
     ) -> None:
         """Initialize agent nodes."""
@@ -28,6 +30,7 @@ class AgentNodes:
         self._llm_provider = llm_provider
         self._openai_provider = openai_provider
         self._gemini_provider = gemini_provider
+        self._web_search_service = web_search_service or WebSearchService()
         self._max_retrieval_attempts = max_retrieval_attempts
 
     # ------------------------------------------------------------------
@@ -194,12 +197,7 @@ class AgentNodes:
         # --------------------------------------------------------------
 
         if state.route == "web":
-            state.answer = (
-                "Web search is not connected yet. "
-                "The web search tool will be added in the next implementation "
-                "step."
-            )
-            return state
+            return self._generate_web_answer(state)
 
         # --------------------------------------------------------------
         # DOCUMENT RAG
@@ -215,6 +213,59 @@ class AgentNodes:
     # ------------------------------------------------------------------
     # GENERAL ANSWER
     # ------------------------------------------------------------------
+
+    def _generate_web_answer(self, state: AgentState) -> AgentState:
+        """Search the web and generate an answer from the results."""
+        try:
+            results = self._web_search_service.search(
+                state.query,
+                max_results=5,
+            )
+        except Exception as exc:
+            state.answer = (
+                "I could not search the web right now. " "Please try again shortly."
+            )
+            state.error = str(exc)
+            return state
+
+        if not results:
+            state.answer = "I could not find relevant web results for your question."
+            return state
+
+        result_lines = []
+
+        for index, result in enumerate(results, start=1):
+            result_lines.append(
+                f"[Source {index}]\n"
+                f"Title: {result['title']}\n"
+                f"URL: {result['url']}\n"
+                f"Snippet: {result['snippet']}"
+            )
+
+        state.tool_result = "\n\n".join(result_lines)
+
+        history = self._format_conversation_history(state)
+
+        system_prompt = (
+            "You are a helpful web-enabled AI assistant. "
+            "Answer the user's question using the web search results provided. "
+            "Prefer information supported by the search results. "
+            "Do not invent facts that are not supported by the results. "
+            "When the results are insufficient, clearly say so. "
+            "Include the relevant source URLs in your answer."
+        )
+
+        user_prompt = (
+            f"Conversation history:\n{history}\n\n"
+            f"User question:\n{state.query}\n\n"
+            f"Web search results:\n{state.tool_result}"
+        )
+
+        return self._generate_with_available_providers(
+            state=state,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+        )
 
     def _generate_general_answer(self, state: AgentState) -> AgentState:
         """Generate a general-purpose answer without document retrieval."""
@@ -319,8 +370,8 @@ class AgentNodes:
 
         if self._openai_provider is not None and self._gemini_provider is not None:
             # --------------------------------------------------------------
-        # Try OpenAI and Gemini in parallel
-        # --------------------------------------------------------------
+            # Try OpenAI and Gemini in parallel
+            # --------------------------------------------------------------
 
             with ThreadPoolExecutor(max_workers=2) as executor:
                 openai_future = executor.submit(
@@ -434,12 +485,18 @@ class AgentNodes:
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
             )
+
         except Exception as exc:
+            import logging
+
+            logging.exception("LLM provider generation failed")
+
             state.answer = (
                 "I could not generate an answer because the configured "
                 "language model provider is currently unavailable."
             )
             state.error = str(exc)
+
 
         return state
 

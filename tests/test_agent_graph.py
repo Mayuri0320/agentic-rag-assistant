@@ -200,3 +200,102 @@ def test_generate_uses_openai_and_gemini_then_synthesizes() -> None:
 
     assert openai_provider.calls == 2
     assert gemini_provider.calls == 1
+
+def test_web_route_uses_search_service() -> None:
+    """The web route should search and pass results to the LLM."""
+
+    class StubRetriever:
+        def retrieve(
+            self,
+            *,
+            query: str,
+            user_id: str,
+            document_id: str | None,
+            top_k: int,
+        ) -> list:
+            return []
+
+    class StubWebSearchService:
+        def search(
+            self,
+            query: str,
+            *,
+            max_results: int = 5,
+        ) -> list[dict[str, str]]:
+            assert query == "latest AI developments"
+            assert max_results == 5
+
+            return [
+                {
+                    "title": "Example AI News",
+                    "url": "https://example.com/ai",
+                    "snippet": "Latest AI development information.",
+                }
+            ]
+
+    nodes = AgentNodes(
+        retriever=StubRetriever(),
+        llm_provider=MockLLMProvider(),
+        web_search_service=StubWebSearchService(),
+    )
+
+    state = AgentState(
+        query="latest AI developments",
+        user_id="user-a",
+    )
+
+    state = nodes.planner(state)
+
+    assert state.route == "web"
+
+    state = nodes.generate(state)
+
+    assert state.tool_result is not None
+    assert "Example AI News" in state.tool_result
+    assert "https://example.com/ai" in state.tool_result
+    assert state.answer is not None
+
+
+def test_web_route_handles_search_failure() -> None:
+    """The web route should handle search service failures gracefully."""
+
+    class StubRetriever:
+        def retrieve(
+            self,
+            *,
+            query: str,
+            user_id: str,
+            document_id: str | None,
+            top_k: int,
+        ) -> list:
+            return []
+
+    class FailingWebSearchService:
+        def search(
+            self,
+            query: str,
+            *,
+            max_results: int = 5,
+        ) -> list[dict[str, str]]:
+            raise RuntimeError("Search service unavailable")
+
+    nodes = AgentNodes(
+        retriever=StubRetriever(),
+        llm_provider=MockLLMProvider(),
+        web_search_service=FailingWebSearchService(),
+    )
+
+    state = AgentState(
+        query="latest AI developments",
+        user_id="user-a",
+    )
+
+    state = nodes.planner(state)
+    state = nodes.generate(state)
+
+    assert state.route == "web"
+    assert state.answer == (
+        "I could not search the web right now. "
+        "Please try again shortly."
+    )
+    assert state.error == "Search service unavailable"
