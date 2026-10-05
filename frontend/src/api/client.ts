@@ -265,6 +265,12 @@ export type DocumentResponse = {
   file_size: number
   storage_path: string
   status: string
+  created_at: string
+  updated_at: string
+}
+
+export type DocumentsResponse = {
+  documents: DocumentResponse[]
 }
 
 export type IngestionResponse = {
@@ -300,6 +306,25 @@ export async function uploadDocument(
   if (!response.ok) {
     const error = await response.json().catch(() => null)
     throw new Error(error?.detail ?? 'Document upload failed')
+  }
+
+  return response.json()
+}
+
+export async function getDocuments(
+  accessToken: string,
+): Promise<DocumentsResponse> {
+  const response = await authenticatedFetch(
+    accessToken,
+    `${API_BASE_URL}/documents`,
+  )
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null)
+
+    throw new Error(
+      error?.detail ?? 'Failed to load documents',
+    )
   }
 
   return response.json()

@@ -3,6 +3,7 @@ import Auth from './components/Auth'
 import {
   getCurrentUser,
   uploadDocument,
+  getDocuments,
   sendChatMessage,
   getConversations,
   getConversation,
@@ -45,6 +46,10 @@ function App() {
   const [selectedDocument, setSelectedDocument] =
     useState<DocumentResponse | null>(null)
 
+  const [documents, setDocuments] = useState<DocumentResponse[]>([])
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false)
+  const [showDocuments, setShowDocuments] = useState(false)
+
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   /*
@@ -63,6 +68,17 @@ function App() {
       try {
         const currentUser = await getCurrentUser(accessToken)
         setUser(currentUser)
+        setIsLoadingDocuments(true)
+
+      try {
+       const response = await getDocuments(accessToken)
+       setDocuments(response.documents)
+      } catch (error) {
+       console.error('Failed to load documents:', error)
+       setDocuments([])
+      }finally {
+  setIsLoadingDocuments(false)
+}
 
         /*
          * Load the user's saved conversations.
@@ -468,7 +484,10 @@ function App() {
 
         {/* Sidebar bottom */}
         <div className="sidebar-bottom">
-          <button className="sidebar-link">
+          <button 
+          className="sidebar-link"
+          onClick={() => setShowDocuments(true)}
+          >
             <span>▣</span>
             Documents
           </button>
@@ -733,6 +752,55 @@ function App() {
             </span>
           </div>
         </div>
+        {showDocuments && (
+          <section className="documents-panel">
+            <div className="documents-panel-header">
+              <div>
+                <h2>My Documents</h2>
+                <p>
+                  Documents uploaded to your account
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="documents-panel-close"
+                onClick={() => setShowDocuments(false)}
+              >
+                Close
+              </button>
+            </div>
+
+            {isLoadingDocuments ? (
+              <p>Loading documents...</p>
+            ) : documents.length === 0 ? (
+              <p>No documents uploaded yet.</p>
+            ) : (
+              <div className="documents-list">
+                {documents.map((document) => (
+                  <div
+                    className="document-item"
+                    key={document.id}
+                  >
+                    <div>
+                      <strong>{document.filename}</strong>
+
+                      <span>
+                        {document.file_type} ·{' '}
+                        {document.status}
+                      </span>
+                    </div>
+
+                    <span>
+                      {document.file_size} bytes
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
       </main>
     </div>
   )
