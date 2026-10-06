@@ -12,6 +12,7 @@ from app.agent.nodes import AgentNodes
 from app.core.settings import get_settings
 from app.ingestion.embeddings.mock import MockEmbeddingProvider
 from app.retrieval.retriever import SemanticRetriever
+from app.services.coding_service import CodingService
 from app.services.web_search_service import WebSearchService
 from app.vectorstore.chroma import ChromaVectorStore
 
@@ -98,7 +99,12 @@ def get_gemini_provider() -> LLMProvider:
         model=settings.gemini_model,
     )
 
-
+@lru_cache
+def get_coding_service() -> CodingService:
+    """Create the coding service using the configured Gemini provider."""
+    return CodingService(
+        llm_provider=get_gemini_provider(),
+    )
 
 @lru_cache
 def get_agent_graph() -> CompiledStateGraph:

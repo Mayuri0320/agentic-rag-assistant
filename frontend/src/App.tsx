@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import Auth from './components/Auth'
+import CodingAssistant from './components/CodingAssistant'
 import {
   getCurrentUser,
   uploadDocument,
@@ -28,6 +29,8 @@ function App() {
 
   const [user, setUser] = useState<User | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
+
+  const [showCodingAssistant, setShowCodingAssistant] = useState(false)
 
   const [message, setMessage] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
@@ -491,6 +494,16 @@ function App() {
             <span>▣</span>
             Documents
           </button>
+          <button
+          className="sidebar-link"
+          onClick={() => {
+          setShowDocuments(false)
+          setShowCodingAssistant(true)
+          }}
+          >
+          <span>⌘</span>
+          Coding Assistant
+         </button>
 
           <button className="sidebar-link">
             <span>⚙</span>
@@ -508,6 +521,8 @@ function App() {
               <strong>{user.email}</strong>
               <span>Authenticated user</span>
             </div>
+
+           
 
             <button
               type="button"
@@ -549,7 +564,10 @@ function App() {
           </div>
         </header>
 
-        <section className="chat-area">
+        <section
+        className="chat-area"
+        style={{ display: showCodingAssistant ? 'none' : undefined }}
+        >
           {messages.length === 0 ? (
             <div className="welcome">
               <div className="welcome-icon">
@@ -663,7 +681,12 @@ function App() {
           )}
         </section>
 
-        <div className="composer-wrapper">
+       
+          {showCodingAssistant && <CodingAssistant />}
+           <div
+            className="composer-wrapper"
+            style={{ display: showCodingAssistant ? 'none' : undefined }}
+            >
           {selectedDocument && (
             <div className="selected-document">
               <div className="selected-document-info">

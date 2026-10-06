@@ -329,3 +329,60 @@ export async function getDocuments(
 
   return response.json()
 }
+
+/* =========================
+   Coding Assistant
+   ========================= */
+
+export type CodingResponse = {
+  message: string
+  filename: string
+  download_url: string
+  explanation: string
+}
+
+export async function generatePythonSolution(
+  file: File,
+  instruction: string,
+): Promise<CodingResponse> {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('instruction', instruction)
+
+  const response = await fetch(`${API_BASE_URL}/coding/generate`, {
+    method: 'POST',
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null)
+    throw new Error(error?.detail ?? 'Python code generation failed')
+  }
+
+  return response.json()
+}
+
+export async function downloadPythonSolution(
+  filename: string,
+): Promise<void> {
+  const response = await fetch(
+    `${API_BASE_URL}/coding/download/${encodeURIComponent(filename)}`,
+  )
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null)
+    throw new Error(error?.detail ?? 'Failed to download generated code')
+  }
+
+  const blob = await response.blob()
+  const downloadUrl = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+
+  link.href = downloadUrl
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+
+  URL.revokeObjectURL(downloadUrl)
+}

@@ -820,3 +820,258 @@
 .selected-document-remove:hover {
   color: #ffffff;
 }
+
+/* =========================
+   Python Coding Assistant
+   ========================= */
+
+.coding-assistant {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 40px 36px 56px;
+  box-sizing: border-box;
+  color: #f1f5f9;
+  animation: codingFadeIn 0.3s ease;
+}
+
+.coding-header {
+  margin-bottom: 30px;
+}
+
+.coding-header h2 {
+  margin: 0 0 12px;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.8px;
+  color: #f8fafc;
+}
+
+.coding-header p {
+  margin: 0;
+  max-width: 650px;
+  color: #94a3b8;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.coding-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 30px;
+  background: #11151e;
+  border: 1px solid #283244;
+  border-radius: 18px;
+  box-shadow: 0 12px 35px rgb(0 0 0 / 16%);
+}
+
+.coding-card label {
+  display: block;
+  margin-top: 8px;
+  color: #e2e8f0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.coding-card input[type="file"] {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 18px;
+  color: #cbd5e1;
+  background: #0b0e14;
+  border: 1px dashed #475569;
+  border-radius: 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.coding-card input[type="file"]:hover {
+  border-color: #818cf8;
+  background: #111827;
+}
+
+.coding-card input[type="file"]::file-selector-button {
+  margin-right: 14px;
+  padding: 9px 14px;
+  color: #e0e7ff;
+  background: #252d40;
+  border: 1px solid #3b4660;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.coding-file-name {
+  margin: 0;
+  color: #a5b4fc;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.coding-card textarea {
+  display: block;
+  width: 100%;
+  min-height: 180px;
+  box-sizing: border-box;
+  padding: 16px;
+  color: #f1f5f9;
+  background: #0b0e14;
+  border: 1px solid #30394b;
+  border-radius: 12px;
+  outline: none;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.7;
+  resize: vertical;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.coding-card textarea::placeholder {
+  color: #64748b;
+}
+
+.coding-card textarea:focus {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgb(129 140 248 / 13%);
+}
+
+.coding-generate-button,
+.coding-download-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  min-height: 46px;
+  margin-top: 12px;
+  padding: 0 22px;
+  color: #ffffff;
+  background: #6366f1;
+  border: 1px solid #818cf8;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s, opacity 0.2s;
+}
+
+.coding-generate-button:hover:not(:disabled),
+.coding-download-button:hover:not(:disabled) {
+  background: #4f46e5;
+  transform: translateY(-1px);
+}
+
+.coding-generate-button:disabled,
+.coding-download-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.coding-status {
+  margin: 8px 0 0;
+  color: #a5b4fc;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.coding-error {
+  margin: 12px 0 0;
+  padding: 13px 15px;
+  color: #fecaca;
+  background: rgb(127 29 29 / 20%);
+  border: 1px solid rgb(248 113 113 / 35%);
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.coding-result {
+  margin-top: 18px;
+  padding: 22px;
+  background: rgb(16 185 129 / 6%);
+  border: 1px solid rgb(52 211 153 / 25%);
+  border-radius: 14px;
+}
+
+.coding-result h3 {
+  margin: 0 0 12px;
+  color: #6ee7b7;
+  font-size: 18px;
+  font-weight: 650;
+}
+
+.coding-result p {
+  color: #cbd5e1;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.coding-result p strong {
+  color: #f1f5f9;
+}
+
+.coding-result .coding-download-button {
+  background: #047857;
+  border-color: #10b981;
+}
+
+.coding-result .coding-download-button:hover:not(:disabled) {
+  background: #065f46;
+}
+
+@keyframes codingFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 700px) {
+  .coding-assistant {
+    padding: 24px 16px;
+  }
+
+  .coding-header h2 {
+    font-size: 25px;
+  }
+
+  .coding-card {
+    padding: 20px;
+    border-radius: 14px;
+  }
+
+  .coding-generate-button,
+  .coding-download-button {
+    width: 100%;
+    align-self: stretch;
+    box-sizing: border-box;
+  }
+}
+
+.coding-explanation {
+  margin-top: 22px;
+  padding: 20px;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 12px;
+}
+
+.coding-explanation h3 {
+  margin: 0 0 14px;
+  color: #a5b4fc;
+  font-size: 17px;
+}
+
+.coding-explanation-content {
+  color: #d1d5db;
+  font-size: 14px;
+  line-height: 1.9;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
