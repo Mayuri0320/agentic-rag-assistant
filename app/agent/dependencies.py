@@ -43,7 +43,6 @@ def get_semantic_retriever() -> SemanticRetriever:
     )
 
 
-
 @lru_cache
 def get_llm_provider() -> LLMProvider:
     """Create the configured default language model provider."""
@@ -75,7 +74,6 @@ def get_llm_provider() -> LLMProvider:
     )
 
 
-
 @lru_cache
 def get_openai_provider() -> LLMProvider:
     """Create the OpenAI language model provider."""
@@ -99,12 +97,14 @@ def get_gemini_provider() -> LLMProvider:
         model=settings.gemini_model,
     )
 
+
 @lru_cache
 def get_coding_service() -> CodingService:
     """Create the coding service using the configured Gemini provider."""
     return CodingService(
         llm_provider=get_gemini_provider(),
     )
+
 
 @lru_cache
 def get_agent_graph() -> CompiledStateGraph:
@@ -122,6 +122,7 @@ def get_agent_graph() -> CompiledStateGraph:
             get_gemini_provider() if provider_mode == "dual" else None
         ),
         web_search_service=WebSearchService(),
+        coding_service=get_coding_service(),
     )
 
     return build_agent_graph(nodes)

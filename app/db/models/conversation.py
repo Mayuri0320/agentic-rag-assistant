@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
+    from app.db.models.code_artifact import CodeArtifact
     from app.db.models.message import Message
     from app.db.models.user import User
 
@@ -57,4 +58,10 @@ class Conversation(Base):
         back_populates="conversation",
         cascade="all, delete-orphan",
         order_by="Message.created_at",
+    )
+
+    code_artifacts: Mapped[list["CodeArtifact"]] = relationship(
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+        order_by="CodeArtifact.updated_at",
     )

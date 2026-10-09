@@ -682,7 +682,15 @@ function App() {
         </section>
 
        
-          {showCodingAssistant && <CodingAssistant />}
+          {showCodingAssistant && (
+            <CodingAssistant
+              accessToken={accessToken}
+              conversationId={conversationId}
+              onConversationCreated={(id) => {
+                setConversationId(id)
+              }}
+            />
+          )}
            <div
             className="composer-wrapper"
             style={{ display: showCodingAssistant ? 'none' : undefined }}

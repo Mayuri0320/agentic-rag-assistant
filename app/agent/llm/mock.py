@@ -11,9 +11,11 @@ class MockLLMProvider(LLMProvider):
         *,
         system_prompt: str,
         user_prompt: str,
+        response_mime_type: str | None = None,
     ) -> str:
         """Generate a deterministic response."""
         del system_prompt
+        del response_mime_type
 
         if not user_prompt.strip():
             raise ValueError("user_prompt cannot be empty")

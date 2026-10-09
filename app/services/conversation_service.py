@@ -2,19 +2,22 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.models.code_artifact import CodeArtifact
 from app.db.models.conversation import Conversation
 from app.db.models.message import Message
+from app.db.repositories.code_artifact import CodeArtifactRepository
 from app.db.repositories.conversation import ConversationRepository
 from app.db.repositories.message import MessageRepository
 
 
 class ConversationService:
-    """Manage conversations and their messages."""
+    """Manage conversations, messages, and code artifacts."""
 
     def __init__(self, session: AsyncSession) -> None:
         """Initialize the conversation service."""
         self._conversation_repository = ConversationRepository(session)
         self._message_repository = MessageRepository(session)
+        self._code_artifact_repository = CodeArtifactRepository(session)
 
     async def create_conversation(
         self,
@@ -130,6 +133,69 @@ class ConversationService:
             return None
 
         return await self._message_repository.list_for_conversation(
+            conversation_id=conversation_id,
+        )
+
+    async def add_code_artifact(
+        self,
+        *,
+        conversation_id: int,
+        user_id: int,
+        filename: str,
+        language: str,
+        source_code: str,
+    ) -> CodeArtifact | None:
+        """Create a code artifact for a user's conversation."""
+        conversation = await self.get_conversation(
+            conversation_id=conversation_id,
+            user_id=user_id,
+        )
+
+        if conversation is None:
+            return None
+
+        return await self._code_artifact_repository.create(
+            conversation_id=conversation_id,
+            filename=filename,
+            language=language,
+            source_code=source_code,
+        )
+
+    async def get_latest_code_artifact(
+        self,
+        *,
+        conversation_id: int,
+        user_id: int,
+    ) -> CodeArtifact | None:
+        """Return the latest code artifact for a user's conversation."""
+        conversation = await self.get_conversation(
+            conversation_id=conversation_id,
+            user_id=user_id,
+        )
+
+        if conversation is None:
+            return None
+
+        return await self._code_artifact_repository.get_latest_for_conversation(
+            conversation_id=conversation_id,
+        )
+
+    async def list_code_artifacts(
+        self,
+        *,
+        conversation_id: int,
+        user_id: int,
+    ) -> list[CodeArtifact] | None:
+        """Return all code artifacts for a user's conversation."""
+        conversation = await self.get_conversation(
+            conversation_id=conversation_id,
+            user_id=user_id,
+        )
+
+        if conversation is None:
+            return None
+
+        return await self._code_artifact_repository.list_for_conversation(
             conversation_id=conversation_id,
         )
 

@@ -179,7 +179,9 @@ export async function sendChatMessage(
         ...(conversationId !== undefined
           ? { conversation_id: conversationId }
           : {}),
-        ...(documentId !== undefined ? { document_id: documentId } : {}),
+        ...(documentId !== undefined
+          ? { document_id: documentId }
+          : {}),
       }),
     },
   )
@@ -229,6 +231,7 @@ export async function getConversations(
 
   if (!response.ok) {
     const error = await response.json().catch(() => null)
+
     throw new Error(
       error?.detail ?? 'Failed to load conversations',
     )
@@ -248,6 +251,7 @@ export async function getConversation(
 
   if (!response.ok) {
     const error = await response.json().catch(() => null)
+
     throw new Error(
       error?.detail ?? 'Failed to load conversation',
     )
@@ -291,6 +295,7 @@ export async function uploadDocument(
   file: File,
 ): Promise<DocumentUploadResponse> {
   const formData = new FormData()
+
   formData.append('file', file)
 
   const response = await authenticatedFetch(
@@ -307,7 +312,10 @@ export async function uploadDocument(
 
   if (!response.ok) {
     const error = await response.json().catch(() => null)
-    throw new Error(error?.detail ?? 'Document upload failed')
+
+    throw new Error(
+      error?.detail ?? 'Document upload failed',
+    )
   }
 
   return response.json()
@@ -340,31 +348,51 @@ export type CodingResponse = {
   message: string
   filename: string
   download_url: string
+  solution_code: string
   explanation: string
+  language: string
+  conversation_id: number
 }
 
-export async function generatePythonSolution(
+export async function generateCodeSolution(
+  accessToken: string,
   file: File,
   instruction: string,
+  conversationId?: number,
 ): Promise<CodingResponse> {
   const formData = new FormData()
+
   formData.append('file', file)
   formData.append('instruction', instruction)
 
-  const response = await fetch(`${API_BASE_URL}/coding/generate`, {
-    method: 'POST',
-    body: formData,
-  })
+  if (conversationId !== undefined) {
+    formData.append(
+      'conversation_id',
+      String(conversationId),
+    )
+  }
+
+  const response = await authenticatedFetch(
+    accessToken,
+    `${API_BASE_URL}/coding/generate`,
+    {
+      method: 'POST',
+      body: formData,
+    },
+  )
 
   if (!response.ok) {
     const error = await response.json().catch(() => null)
-    throw new Error(error?.detail ?? 'Python code generation failed')
+
+    throw new Error(
+      error?.detail ?? 'Code generation failed',
+    )
   }
 
   return response.json()
 }
 
-export async function downloadPythonSolution(
+export async function downloadCodeSolution(
   filename: string,
 ): Promise<void> {
   const response = await fetch(
@@ -373,7 +401,10 @@ export async function downloadPythonSolution(
 
   if (!response.ok) {
     const error = await response.json().catch(() => null)
-    throw new Error(error?.detail ?? 'Failed to download generated code')
+
+    throw new Error(
+      error?.detail ?? 'Failed to download generated code',
+    )
   }
 
   const blob = await response.blob()
@@ -382,6 +413,7 @@ export async function downloadPythonSolution(
 
   link.href = downloadUrl
   link.download = filename
+
   document.body.appendChild(link)
   link.click()
   link.remove()

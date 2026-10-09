@@ -29,6 +29,7 @@ class OpenAILLMProvider(LLMProvider):
         *,
         system_prompt: str,
         user_prompt: str,
+        response_mime_type: str | None = None,
     ) -> str:
         """Generate a response using the OpenAI Responses API."""
         if not system_prompt.strip():
@@ -36,7 +37,7 @@ class OpenAILLMProvider(LLMProvider):
 
         if not user_prompt.strip():
             raise ValueError("user_prompt cannot be empty.")
-
+        del response_mime_type
         response = self._client.responses.create(
             model=self._model,
             instructions=system_prompt,

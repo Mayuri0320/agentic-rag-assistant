@@ -12,6 +12,7 @@ class LLMProvider(ABC):
         *,
         system_prompt: str,
         user_prompt: str,
+        response_mime_type: str | None = None,
     ) -> str:
         """Generate a response from the language model."""
         raise NotImplementedError

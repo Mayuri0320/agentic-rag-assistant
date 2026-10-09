@@ -69,6 +69,10 @@ def create_conversation_service_mock(
         return_value=[],
     )
 
+    service.get_latest_code_artifact = AsyncMock(
+    return_value=None,
+    )
+
     service.add_message = AsyncMock(
         return_value=MagicMock(),
     )

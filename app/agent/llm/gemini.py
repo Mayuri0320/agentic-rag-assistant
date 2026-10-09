@@ -15,7 +15,7 @@ class GeminiLLMProvider(LLMProvider):
     def __init__(
         self,
         api_key: str,
-        model: str = "gemini-2.5-flash",
+        model: str = "gemini-3.5-flash-lite",
     ) -> None:
         """Initialize the Gemini provider."""
         if not api_key.strip():
@@ -39,6 +39,7 @@ class GeminiLLMProvider(LLMProvider):
         *,
         system_prompt: str,
         user_prompt: str,
+        response_mime_type: str | None = None,
     ) -> str:
         """Generate a response using Gemini with retries for temporary failures."""
         if not system_prompt.strip():
@@ -52,7 +53,13 @@ class GeminiLLMProvider(LLMProvider):
                 response = self._client.models.generate_content(
                     model=self._model,
                     contents=user_prompt,
-                    config={"system_instruction": system_prompt},
+                    config={"system_instruction": system_prompt,
+                            **(
+                                {"response_mime_type": response_mime_type}
+                                if response_mime_type
+                                else {}
+                            ),
+                    },
                 )
 
                 if response.text is None:

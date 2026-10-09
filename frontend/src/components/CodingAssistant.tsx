@@ -1,12 +1,21 @@
-
 import { useState } from 'react'
 import {
-  generatePythonSolution,
-  downloadPythonSolution,
+  generateCodeSolution,
+  downloadCodeSolution,
 } from '../api/client'
 import type { CodingResponse } from '../api/client'
 
-export default function CodingAssistant() {
+type CodingAssistantProps = {
+  accessToken: string
+  conversationId?: number
+  onConversationCreated: (id: number) => void
+}
+
+export default function CodingAssistant({
+  accessToken,
+  conversationId,
+  onConversationCreated,
+}: CodingAssistantProps) {
   const [file, setFile] = useState<File | null>(null)
   const [instruction, setInstruction] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
@@ -16,7 +25,9 @@ export default function CodingAssistant() {
 
   async function handleGenerate() {
     if (!file || !instruction.trim()) {
-      setError('Please select a Python file and enter your instructions.')
+      setError(
+        'Please select a source-code file and enter your instructions.',
+      )
       return
     }
 
@@ -25,8 +36,18 @@ export default function CodingAssistant() {
     setIsGenerating(true)
 
     try {
-      const response = await generatePythonSolution(file, instruction)
+      const response = await generateCodeSolution(
+        accessToken,
+        file,
+        instruction,
+        conversationId,
+      )
+
       setResult(response)
+
+      if (response.conversation_id !== undefined) {
+        onConversationCreated(response.conversation_id)
+      }
     } catch (err) {
       setError(
         err instanceof Error
@@ -39,13 +60,15 @@ export default function CodingAssistant() {
   }
 
   async function handleDownload() {
-    if (!result) return
+    if (!result) {
+      return
+    }
 
     setError('')
     setIsDownloading(true)
 
     try {
-      await downloadPythonSolution(result.filename)
+      await downloadCodeSolution(result.filename)
     } catch (err) {
       setError(
         err instanceof Error
@@ -60,19 +83,24 @@ export default function CodingAssistant() {
   return (
     <section className="coding-assistant">
       <div className="coding-header">
-        <h2>Python Coding Assistant</h2>
+        <h2>Coding Assistant</h2>
+
         <p>
-          Upload your starter code, describe the task, and let Gemini
-          generate a Python solution.
+          Upload your source code, describe what you want to
+          change, fix, improve, or convert, and Gemini will
+          generate the complete result.
         </p>
       </div>
 
       <div className="coding-card">
-        <label htmlFor="python-file">Starter Python file</label>
+        <label htmlFor="source-code-file">
+          Source code file
+        </label>
+
         <input
-          id="python-file"
+          id="source-code-file"
           type="file"
-          accept=".py"
+          accept=".py,.java,.js,.jsx,.ts,.tsx,.cpp,.cc,.cxx,.c,.h,.hpp,.cs,.go,.rs,.php,.rb,.swift,.kt,.kts,.scala,.sql,.sh,.bash"
           onChange={(event) => {
             setFile(event.target.files?.[0] ?? null)
             setResult(null)
@@ -87,31 +115,40 @@ export default function CodingAssistant() {
         )}
 
         <label htmlFor="coding-instruction">
-          Assignment instructions
+          Instructions
         </label>
+
         <textarea
           id="coding-instruction"
           value={instruction}
           onChange={(event) => {
             setInstruction(event.target.value)
             setResult(null)
+            setError('')
           }}
-          placeholder="Explain what the program should do, the requirements, and any constraints..."
+          placeholder="For example: Convert this Python code to Java, fix the bug, improve the implementation, or explain and complete the code..."
           rows={7}
         />
 
         <button
           type="button"
           className="coding-generate-button"
-          onClick={handleGenerate}
-          disabled={isGenerating || !file || !instruction.trim()}
+          onClick={() => void handleGenerate()}
+          disabled={
+            isGenerating ||
+            !file ||
+            !instruction.trim()
+          }
         >
-          {isGenerating ? 'Generating with Gemini...' : 'Generate Python Solution'}
+          {isGenerating
+            ? 'Generating with Gemini...'
+            : 'Generate Code'}
         </button>
 
         {isGenerating && (
           <p className="coding-status">
-            Gemini is working on your solution. This may take a little while.
+            Gemini is working on your code. This may take a
+            little while.
           </p>
         )}
 
@@ -123,24 +160,45 @@ export default function CodingAssistant() {
 
         {result && (
           <div className="coding-result">
-            <h3>Solution generated successfully</h3>
+            <h3>Code generated successfully</h3>
+
             <p>{result.message}</p>
+
             <p>
-              <strong>File:</strong> {result.filename}
+              <strong>Generated language:</strong>{' '}
+              {result.language}
             </p>
+
+            <p>
+              <strong>Generated file:</strong>{' '}
+              {result.filename}
+            </p>
+
+            <div className="coding-solution">
+              <h3>Generated Code</h3>
+
+              <pre className="coding-code">
+                <code>{result.solution_code}</code>
+              </pre>
+            </div>
+
             <div className="coding-explanation">
-  <h3>How the solution works</h3>
-  <div className="coding-explanation-content">
-    {result.explanation}
-  </div>
-</div>
+              <h3>Explanation</h3>
+
+              <div className="coding-explanation-content">
+                {result.explanation}
+              </div>
+            </div>
+
             <button
               type="button"
               className="coding-download-button"
-              onClick={handleDownload}
+              onClick={() => void handleDownload()}
               disabled={isDownloading}
             >
-              {isDownloading ? 'Downloading...' : 'Download Python File'}
+              {isDownloading
+                ? 'Downloading...'
+                : 'Download Generated File'}
             </button>
           </div>
         )}
