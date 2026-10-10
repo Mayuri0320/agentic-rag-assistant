@@ -70,7 +70,7 @@ def create_conversation_service_mock(
     )
 
     service.get_latest_code_artifact = AsyncMock(
-    return_value=None,
+        return_value=None,
     )
 
     service.add_message = AsyncMock(

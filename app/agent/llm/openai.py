@@ -20,8 +20,10 @@ class OpenAILLMProvider(LLMProvider):
         if not model.strip():
             raise ValueError("OpenAI model cannot be empty.")
 
-        self._client = OpenAI(api_key=api_key,
-                               max_retries=0,)
+        self._client = OpenAI(
+            api_key=api_key,
+            max_retries=0,
+        )
         self._model = model
 
     def generate(

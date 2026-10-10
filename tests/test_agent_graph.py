@@ -201,6 +201,7 @@ def test_generate_uses_openai_and_gemini_then_synthesizes() -> None:
     assert openai_provider.calls == 2
     assert gemini_provider.calls == 1
 
+
 def test_web_route_uses_search_service() -> None:
     """The web route should search and pass results to the LLM."""
 
@@ -295,7 +296,6 @@ def test_web_route_handles_search_failure() -> None:
 
     assert state.route == "web"
     assert state.answer == (
-        "I could not search the web right now. "
-        "Please try again shortly."
+        "I could not search the web right now. " "Please try again shortly."
     )
     assert state.error == "Search service unavailable"

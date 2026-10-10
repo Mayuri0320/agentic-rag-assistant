@@ -115,12 +115,8 @@ def get_agent_graph() -> CompiledStateGraph:
     nodes = AgentNodes(
         retriever=get_semantic_retriever(),
         llm_provider=get_llm_provider(),
-        openai_provider=(
-            get_openai_provider() if provider_mode == "dual" else None
-        ),
-        gemini_provider=(
-            get_gemini_provider() if provider_mode == "dual" else None
-        ),
+        openai_provider=(get_openai_provider() if provider_mode == "dual" else None),
+        gemini_provider=(get_gemini_provider() if provider_mode == "dual" else None),
         web_search_service=WebSearchService(),
         coding_service=get_coding_service(),
     )

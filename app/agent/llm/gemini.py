@@ -1,4 +1,3 @@
-
 """Google Gemini language model provider."""
 
 import time
@@ -53,12 +52,13 @@ class GeminiLLMProvider(LLMProvider):
                 response = self._client.models.generate_content(
                     model=self._model,
                     contents=user_prompt,
-                    config={"system_instruction": system_prompt,
-                            **(
-                                {"response_mime_type": response_mime_type}
-                                if response_mime_type
-                                else {}
-                            ),
+                    config={
+                        "system_instruction": system_prompt,
+                        **(
+                            {"response_mime_type": response_mime_type}
+                            if response_mime_type
+                            else {}
+                        ),
                     },
                 )
 
